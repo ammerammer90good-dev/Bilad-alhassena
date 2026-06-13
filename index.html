@@ -941,7 +941,7 @@ function adminPrintAll(){
     const fullHTML=`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"/><style>${printCSS}</style></head><body>${body}</body></html>`;
     try{ localStorage.setItem("__printJob", fullHTML); }
     catch(e){ alert("خطأ في حفظ بيانات الطباعة"); return; }
-    window.open("print.html","_blank");
+    window.location.href = "print.html";
   }).catch(e=>{
     if(btn){btn.textContent="🖨️ طباعة تقرير جميع الآليات";btn.disabled=false;}
     alert("خطأ في تحميل البيانات: "+e.message);
