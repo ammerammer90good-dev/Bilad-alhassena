@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>طباعة التقرير</title>
+  <style>
+    /* ── شاشة الانتظار ── */
+    #waitScreen{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      min-height:100vh;background:#f9fafb;font-family:'Cairo','Segoe UI',Tahoma,sans-serif;
+      padding:24px;text-align:center;
+    }
+    #waitScreen .icon{font-size:56px;margin-bottom:16px;}
+    #waitScreen h2{font-size:20px;font-weight:900;color:#1e3a5f;margin-bottom:8px;}
+    #waitScreen p{font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.8;}
+    .btn{width:100%;max-width:320px;background:linear-gradient(90deg,#f59e0b,#d97706);
+      border:none;border-radius:14px;padding:15px;color:#0f1923;font-weight:900;
+      font-size:16px;cursor:pointer;font-family:inherit;margin-bottom:12px;display:block;}
+    .btn-back{width:100%;max-width:320px;background:transparent;
+      border:2px solid #e5e7eb;border-radius:14px;padding:13px;color:#64748b;
+      font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;display:block;}
+    #errMsg{color:#ef4444;font-size:13px;margin-top:12px;display:none;}
+
+    /* ── محتوى الطباعة ── */
+    #printContent{display:none;}
+
+    /* ── عند الطباعة: أخفِ كل شيء إلا المحتوى ── */
+    @media print{
+      #waitScreen{display:none!important;}
+      #printContent{
+        display:block!important;
+        font-family:'Cairo','Segoe UI',Tahoma,sans-serif;
+        direction:rtl;color:#1a1a1a;background:white;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- شاشة الانتظار -->
+<div id="waitScreen">
+  <div class="icon">🖨️</div>
+  <h2>تقرير جاهز للطباعة</h2>
+  <p>اضغط طباعة الآن لفتح مربع حوار الطباعة<br/>يمكنك اختيار طابعة أو حفظ PDF</p>
+  <button class="btn" id="printBtn" onclick="doPrint()">🖨️ طباعة الآن</button>
+  <button class="btn-back" onclick="goBack()">← رجوع</button>
+  <div id="errMsg"></div>
+</div>
+
+<!-- محتوى التقرير — مخفي في الشاشة، يظهر عند الطباعة فقط -->
+<div id="printContent"></div>
+
+<script>
+  const html = localStorage.getItem("__printJob");
+
+  if(!html){
+    document.getElementById("errMsg").style.display="block";
+    document.getElementById("errMsg").textContent="⚠️ لا توجد بيانات. ارجع وأعد الضغط على طباعة.";
+    document.getElementById("printBtn").disabled=true;
+    document.getElementById("printBtn").style.opacity="0.4";
+  } else {
+    // استخرج body فقط من الـ HTML المحفوظ وضعه في printContent
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    // أضف CSS الطباعة للصفحة الحالية
+    const styleEl = document.createElement("style");
+    styleEl.textContent = `
+      .driver-page{padding:18px;max-width:800px;margin:0 auto;}
+      .drv-hdr{border-bottom:3px solid #f59e0b;padding-bottom:10px;margin-bottom:14px;}
+      .drv-title{font-size:20px;font-weight:900;color:#1e3a5f;}
+      .drv-sub{font-size:11px;color:#555;margin-top:3px;}
+      table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;}
+      th{background:#1e3a5f;color:white;padding:7px 8px;text-align:right;font-weight:600;
+         -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      td{padding:6px 8px;border-bottom:1px solid #e5e7eb;}
+      tr:nth-child(even) td{background:#f9fafb;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .tot td{font-weight:900;background:#fef3c7!important;color:#92400e;
+              -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .section-title{font-size:13px;font-weight:800;color:#1e3a5f;
+                     border-right:4px solid #f59e0b;padding-right:8px;margin:12px 0 8px;}
+      @page{margin:1cm;size:A4;}
+    `;
+    document.head.appendChild(styleEl);
+
+    // ضع المحتوى
+    document.getElementById("printContent").innerHTML = doc.body.innerHTML;
+    localStorage.removeItem("__printJob");
+  }
+
+  function doPrint(){
+    if(!html) return;
+    window.print();
+  }
+
+  function goBack(){
+    if(window.history.length > 1){ window.history.back(); }
+    else { window.close(); }
+  }
+</script>
+</body>
+</html>
