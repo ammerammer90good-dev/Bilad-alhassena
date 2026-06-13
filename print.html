@@ -3,95 +3,158 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>طباعة التقرير</title>
+  <title>تقرير الآليات</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
-    /* ── شاشة الانتظار ── */
-    #waitScreen{
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      min-height:100vh;background:#f9fafb;font-family:'Cairo','Segoe UI',Tahoma,sans-serif;
-      padding:24px;text-align:center;
-    }
-    #waitScreen .icon{font-size:56px;margin-bottom:16px;}
-    #waitScreen h2{font-size:20px;font-weight:900;color:#1e3a5f;margin-bottom:8px;}
-    #waitScreen p{font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.8;}
-    .btn{width:100%;max-width:320px;background:linear-gradient(90deg,#f59e0b,#d97706);
-      border:none;border-radius:14px;padding:15px;color:#0f1923;font-weight:900;
-      font-size:16px;cursor:pointer;font-family:inherit;margin-bottom:12px;display:block;}
-    .btn-back{width:100%;max-width:320px;background:transparent;
-      border:2px solid #e5e7eb;border-radius:14px;padding:13px;color:#64748b;
-      font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;display:block;}
-    #errMsg{color:#ef4444;font-size:13px;margin-top:12px;display:none;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Cairo','Segoe UI',Tahoma,sans-serif;direction:rtl;
+         background:#0f1923;min-height:100vh;display:flex;
+         align-items:center;justify-content:center;padding:24px;}
+    .box{background:linear-gradient(135deg,#1e293b,#0f172a);
+         border:1px solid rgba(245,158,11,0.3);border-radius:20px;
+         padding:32px 24px;text-align:center;max-width:360px;width:100%;
+         box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+    .icon{font-size:60px;margin-bottom:16px;}
+    h2{font-size:20px;font-weight:900;color:#f1f5f9;margin-bottom:8px;}
+    p{font-size:13px;color:#94a3b8;margin-bottom:28px;line-height:1.9;}
+    .btn{width:100%;background:linear-gradient(90deg,#f59e0b,#d97706);
+         border:none;border-radius:14px;padding:16px;color:#0f1923;
+         font-weight:900;font-size:16px;cursor:pointer;
+         font-family:inherit;margin-bottom:12px;
+         box-shadow:0 4px 15px rgba(245,158,11,0.3);}
+    .btn:disabled{opacity:0.5;cursor:not-allowed;}
+    .btn-back{width:100%;background:transparent;
+              border:1.5px solid rgba(255,255,255,0.15);border-radius:14px;
+              padding:14px;color:#94a3b8;font-weight:700;font-size:14px;
+              cursor:pointer;font-family:inherit;}
+    .progress{display:none;margin:16px 0;}
+    .progress-bar{height:6px;background:rgba(255,255,255,0.1);
+                  border-radius:99px;overflow:hidden;}
+    .progress-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#d97706);
+                   border-radius:99px;width:0%;transition:width 0.3s;}
+    .progress-text{font-size:12px;color:#94a3b8;margin-top:8px;}
+    #errMsg{color:#ef4444;font-size:13px;margin-top:12px;display:none;
+            background:rgba(239,68,68,0.1);border-radius:10px;padding:10px;}
 
-    /* ── محتوى الطباعة ── */
-    #printContent{display:none;}
-
-    /* ── عند الطباعة: أخفِ كل شيء إلا المحتوى ── */
-    @media print{
-      #waitScreen{display:none!important;}
-      #printContent{
-        display:block!important;
-        font-family:'Cairo','Segoe UI',Tahoma,sans-serif;
-        direction:rtl;color:#1a1a1a;background:white;
-      }
+    /* محتوى PDF — مخفي في الشاشة */
+    #pdfContent{
+      position:absolute;left:-9999px;top:0;
+      width:794px;background:white;color:#1a1a1a;
+      font-family:'Cairo','Segoe UI',Tahoma,sans-serif;direction:rtl;
     }
+    #pdfContent .driver-page{padding:20px;max-width:754px;margin:0 auto;}
+    #pdfContent .drv-hdr{border-bottom:3px solid #f59e0b;padding-bottom:10px;margin-bottom:14px;}
+    #pdfContent .drv-title{font-size:18px;font-weight:900;color:#1e3a5f;}
+    #pdfContent .drv-sub{font-size:10px;color:#555;margin-top:3px;}
+    #pdfContent table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;}
+    #pdfContent th{background:#1e3a5f;color:white;padding:7px 8px;text-align:right;font-weight:700;}
+    #pdfContent td{padding:6px 8px;border-bottom:1px solid #e5e7eb;}
+    #pdfContent tr:nth-child(even) td{background:#f9fafb;}
+    #pdfContent .tot td{font-weight:900;background:#fef3c7;color:#92400e;}
+    #pdfContent .section-title{font-size:12px;font-weight:800;color:#1e3a5f;
+      border-right:4px solid #f59e0b;padding-right:8px;margin:10px 0 7px;}
   </style>
 </head>
 <body>
 
-<!-- شاشة الانتظار -->
-<div id="waitScreen">
-  <div class="icon">🖨️</div>
-  <h2>تقرير جاهز للطباعة</h2>
-  <p>اضغط طباعة الآن لفتح مربع حوار الطباعة<br/>يمكنك اختيار طابعة أو حفظ PDF</p>
-  <button class="btn" id="printBtn" onclick="doPrint()">🖨️ طباعة الآن</button>
+<div class="box">
+  <div class="icon">📄</div>
+  <h2>تقرير الآليات</h2>
+  <p>اضغط لتحويل التقرير إلى PDF<br/>ثم يمكنك فتحه وطباعته أو مشاركته</p>
+
+  <button class="btn" id="pdfBtn" onclick="generatePDF()">📥 تحويل إلى PDF</button>
   <button class="btn-back" onclick="goBack()">← رجوع</button>
+
+  <div class="progress" id="progressBox">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">جاري التحويل...</div>
+  </div>
+
   <div id="errMsg"></div>
 </div>
 
-<!-- محتوى التقرير — مخفي في الشاشة، يظهر عند الطباعة فقط -->
-<div id="printContent"></div>
+<!-- محتوى التقرير المخفي -->
+<div id="pdfContent"></div>
 
 <script>
   const html = localStorage.getItem("__printJob");
 
   if(!html){
     document.getElementById("errMsg").style.display="block";
-    document.getElementById("errMsg").textContent="⚠️ لا توجد بيانات. ارجع وأعد الضغط على طباعة.";
-    document.getElementById("printBtn").disabled=true;
-    document.getElementById("printBtn").style.opacity="0.4";
+    document.getElementById("errMsg").innerHTML="⚠️ لا توجد بيانات<br/>ارجع وأعد الضغط على طباعة";
+    document.getElementById("pdfBtn").disabled=true;
   } else {
-    // استخرج body فقط من الـ HTML المحفوظ وضعه في printContent
+    // استخرج المحتوى وضعه
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
-
-    // أضف CSS الطباعة للصفحة الحالية
-    const styleEl = document.createElement("style");
-    styleEl.textContent = `
-      .driver-page{padding:18px;max-width:800px;margin:0 auto;}
-      .drv-hdr{border-bottom:3px solid #f59e0b;padding-bottom:10px;margin-bottom:14px;}
-      .drv-title{font-size:20px;font-weight:900;color:#1e3a5f;}
-      .drv-sub{font-size:11px;color:#555;margin-top:3px;}
-      table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;}
-      th{background:#1e3a5f;color:white;padding:7px 8px;text-align:right;font-weight:600;
-         -webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      td{padding:6px 8px;border-bottom:1px solid #e5e7eb;}
-      tr:nth-child(even) td{background:#f9fafb;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .tot td{font-weight:900;background:#fef3c7!important;color:#92400e;
-              -webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .section-title{font-size:13px;font-weight:800;color:#1e3a5f;
-                     border-right:4px solid #f59e0b;padding-right:8px;margin:12px 0 8px;}
-      @page{margin:1cm;size:A4;}
-    `;
-    document.head.appendChild(styleEl);
-
-    // ضع المحتوى
-    document.getElementById("printContent").innerHTML = doc.body.innerHTML;
-    localStorage.removeItem("__printJob");
+    document.getElementById("pdfContent").innerHTML = doc.body.innerHTML;
   }
 
-  function doPrint(){
+  function setProgress(pct, text){
+    document.getElementById("progressFill").style.width = pct+"%";
+    document.getElementById("progressText").textContent = text;
+  }
+
+  function generatePDF(){
     if(!html) return;
-    window.print();
+    const btn = document.getElementById("pdfBtn");
+    const prog = document.getElementById("progressBox");
+
+    btn.disabled = true;
+    btn.textContent = "⏳ جاري التحويل...";
+    prog.style.display = "block";
+
+    setProgress(20, "جاري تجهيز المحتوى...");
+
+    const content = document.getElementById("pdfContent");
+    content.style.left = "0";
+    content.style.position = "relative";
+
+    setTimeout(()=>{
+      setProgress(50, "جاري إنشاء PDF...");
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: "تقرير_الآليات_" + new Date().toLocaleDateString("ar-IQ").replace(/\//g,"-") + ".pdf",
+        image: { type:"jpeg", quality:0.95 },
+        html2canvas: {
+          scale: 1.5,
+          useCORS: true,
+          allowTaint: true,
+          scrollY: 0,
+          windowWidth: 794
+        },
+        jsPDF: { unit:"mm", format:"a4", orientation:"portrait" },
+        pagebreak: { mode:["avoid-all","css","legacy"] }
+      };
+
+      html2pdf().set(opt).from(content).toPdf().get("pdf").then(function(pdf){
+        setProgress(90, "جاري فتح الملف...");
+        const blob = pdf.output("blob");
+        const url = URL.createObjectURL(blob);
+        localStorage.removeItem("__printJob");
+
+        setProgress(100, "تم! جاري الفتح...");
+
+        setTimeout(()=>{
+          // فتح PDF في نافذة جديدة
+          window.open(url, "_blank");
+
+          // إعادة الزر
+          btn.disabled = false;
+          btn.textContent = "📥 تحويل إلى PDF مرة أخرى";
+          prog.style.display = "none";
+        }, 500);
+
+      }).catch(function(err){
+        btn.disabled = false;
+        btn.textContent = "📥 تحويل إلى PDF";
+        prog.style.display = "none";
+        document.getElementById("errMsg").style.display = "block";
+        document.getElementById("errMsg").textContent = "❌ خطأ: " + err.message;
+      });
+
+    }, 300);
   }
 
   function goBack(){
