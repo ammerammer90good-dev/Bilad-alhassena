@@ -937,39 +937,11 @@ function adminPrintAll(){
       .section-title{font-size:13px;font-weight:800;color:#1e3a5f;border-right:4px solid #f59e0b;padding-right:8px;margin:12px 0 8px}
       @media print{.driver-page{padding:12px}@page{margin:1cm;size:A4}}`;
 
-    // ── اكتشاف البيئة وتنفيذ الطباعة ──
-    if(typeof AndroidBridge !== "undefined" && typeof AndroidBridge.print === "function"){
-      // WebView مع جسر أندرويد
-      const fullHTML=`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"/><style>${printCSS}</style></head><body>${body}</body></html>`;
-      AndroidBridge.print(fullHTML);
-    } else {
-      // متصفح عادي أو WebView بدون جسر — استخدام div مخفي + window.print()
-      let pDiv=document.getElementById("__printArea");
-      if(!pDiv){
-        pDiv=document.createElement("div");
-        pDiv.id="__printArea";
-        document.body.appendChild(pDiv);
-      }
-      pDiv.innerHTML=body;
-      pDiv.style.display="block";
-
-      // إضافة style للطباعة مؤقتاً
-      let pStyle=document.getElementById("__printStyle");
-      if(!pStyle){
-        pStyle=document.createElement("style");
-        pStyle.id="__printStyle";
-        document.head.appendChild(pStyle);
-      }
-      pStyle.textContent=`@media print{body>*:not(#__printArea){display:none!important}#__printArea{display:block!important;${printCSS}}}`;
-
-      setTimeout(()=>{
-        window.print();
-        setTimeout(()=>{
-          pDiv.style.display="none";
-          pDiv.innerHTML="";
-        },1000);
-      },300);
-    }
+    // ── حفظ في localStorage وفتح صفحة الطباعة ──
+    const fullHTML=`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"/><style>${printCSS}</style></head><body>${body}</body></html>`;
+    try{ localStorage.setItem("__printJob", fullHTML); }
+    catch(e){ alert("خطأ في حفظ بيانات الطباعة"); return; }
+    window.open("print.html","_blank");
   }).catch(e=>{
     if(btn){btn.textContent="🖨️ طباعة تقرير جميع الآليات";btn.disabled=false;}
     alert("خطأ في تحميل البيانات: "+e.message);
