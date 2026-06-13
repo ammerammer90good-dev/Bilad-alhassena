@@ -881,73 +881,94 @@ function adminPrintAll(){
     })).filter(d=>d.weekData.length>0);
     if(drivers.length===0){alert("لا توجد بيانات لهذا الأسبوع");return;}
 
-    // بناء محتوى التقرير
     let body="";
     drivers.forEach((d,di)=>{
       const wd=d.weekData;
       const tot=wd.reduce((s,day)=>s+parseFloat(calcH(day.startTime||"",day.endTime||"")),0).toFixed(2);
       const allF=wd.flatMap(day=>Array.isArray(day.faults)?day.faults.map(f=>({...f,day:day.day||""})):[]);
       body+=`
-      <div class="driver-page"${di>0?' style="page-break-before:always"':""}>
-        <div class="drv-hdr">
-          <div class="drv-title">
-            <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:5px;background:#f59e0b;font-size:10px;font-weight:900;color:#0f1923;margin-left:6px">IC</span>
-            ${d.info.machine||"آلية"} ${d.info.machineId?"("+d.info.machineId+")":""}
-          </div>
-          <div class="drv-sub">السائق: ${d.info.name||"—"} | أسبوع: ${wk} | طباعة: ${new Date().toLocaleDateString("ar-IQ")}</div>
+      <div class="dp"${di>0?' style="page-break-before:always;border-top:3px dashed #ccc;margin-top:24px;padding-top:16px;"':""}>
+        <div class="dh">
+          <div class="dt">🚛 ${d.info.machine||"آلية"} ${d.info.machineId?"("+d.info.machineId+")":""}</div>
+          <div class="ds">السائق: ${d.info.name||"—"} | أسبوع: ${wk} | ${new Date().toLocaleDateString("ar-IQ")}</div>
         </div>
-        <table><thead><tr><th>اليوم</th><th>التاريخ</th><th>التشغيل</th><th>الإطفاء</th><th>المجموع</th><th>الفحص</th></tr></thead><tbody>
-        ${wd.map(day=>{
-          if(day.outOfService)return`<tr><td>${day.day}</td><td>${day.date}</td><td colspan="3" style="text-align:center;color:#ef4444">⛔ خارج الخدمة</td><td>—</td></tr>`;
-          const h=calcH(day.startTime||"",day.endTime||"");
-          const ckDone=Array.isArray(day.checklist)?day.checklist.filter(c=>c.checked).length:0;
-          const ckTotal=Array.isArray(day.checklist)?day.checklist.length:8;
-          return`<tr><td>${day.day}</td><td>${day.date}</td><td>${to12(day.startTime)}</td><td>${to12(day.endTime)}</td><td><strong>${h}س</strong></td><td>${ckDone}/${ckTotal}</td></tr>`;
-        }).join("")}
-        <tr class="tot"><td colspan="4" style="text-align:center;font-weight:900">مجموع ساعات الأسبوع</td><td colspan="2" style="font-weight:900;font-size:14px">${tot} ساعة</td></tr>
-        </tbody></table>
-        <div class="section-title">✅ قائمة الفحص اليومية</div>
-        <table><thead><tr><th>البند</th>${wd.map(day=>`<th style="min-width:45px">${day.day}</th>`).join("")}</tr></thead><tbody>
-        ${Array.isArray(wd[0]&&wd[0].checklist)?wd[0].checklist.map((c,ci)=>`
-          <tr><td>${c.label}</td>${wd.map(day=>{
-            const ch=Array.isArray(day.checklist)&&day.checklist[ci];
-            return`<td style="text-align:center">${day.outOfService?"—":ch&&ch.checked?"✅":"❌"}</td>`;
-          }).join("")}</tr>`).join(""):""}
-        </tbody></table>
+        <table>
+          <thead><tr><th>اليوم</th><th>التاريخ</th><th>التشغيل</th><th>الإطفاء</th><th>المجموع</th><th>الفحص</th></tr></thead>
+          <tbody>
+          ${wd.map(day=>{
+            if(day.outOfService)return`<tr><td>${day.day}</td><td>${day.date}</td><td colspan="3" style="text-align:center;color:#ef4444">⛔ خارج الخدمة</td><td>—</td></tr>`;
+            const h=calcH(day.startTime||"",day.endTime||"");
+            const ckDone=Array.isArray(day.checklist)?day.checklist.filter(c=>c.checked).length:0;
+            const ckTotal=Array.isArray(day.checklist)?day.checklist.length:8;
+            return`<tr><td>${day.day}</td><td>${day.date}</td><td>${to12(day.startTime)}</td><td>${to12(day.endTime)}</td><td><b>${h}س</b></td><td>${ckDone}/${ckTotal}</td></tr>`;
+          }).join("")}
+          <tr class="tt"><td colspan="4" style="text-align:center">مجموع ساعات الأسبوع</td><td colspan="2">${tot} ساعة</td></tr>
+          </tbody>
+        </table>
+        <div class="st">✅ قائمة الفحص اليومية</div>
+        <table>
+          <thead><tr><th>البند</th>${wd.map(day=>`<th>${day.day}</th>`).join("")}</tr></thead>
+          <tbody>
+          ${Array.isArray(wd[0]&&wd[0].checklist)?wd[0].checklist.map((c,ci)=>`
+            <tr><td>${c.label}</td>${wd.map(day=>{
+              const ch=Array.isArray(day.checklist)&&day.checklist[ci];
+              return`<td style="text-align:center">${day.outOfService?"—":ch&&ch.checked?"✅":"❌"}</td>`;
+            }).join("")}</tr>`).join(""):""}
+          </tbody>
+        </table>
         ${allF.length>0?`
-        <div class="section-title">⚠️ الأعطال المسجلة</div>
+        <div class="st">⚠️ الأعطال المسجلة</div>
         <table><thead><tr><th>اليوم</th><th>العطل</th><th>الوقت</th></tr></thead><tbody>
         ${allF.map(f=>`<tr><td>${f.day}</td><td>${f.text}</td><td>${f.time}</td></tr>`).join("")}
-        </tbody></table>`:`<div style="margin-top:10px;color:#22c55e;font-weight:700;font-size:12px">✅ لا توجد أعطال هذا الأسبوع</div>`}
+        </tbody></table>`:`<p style="color:#22c55e;font-weight:700;font-size:12px;margin-top:8px">✅ لا توجد أعطال</p>`}
       </div>`;
     });
 
-    const printCSS=`
-      *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:'Cairo','Segoe UI',Tahoma,sans-serif;direction:rtl;color:#1a1a1a;background:white}
-      .driver-page{padding:18px;max-width:800px;margin:0 auto}
-      .drv-hdr{border-bottom:3px solid #f59e0b;padding-bottom:10px;margin-bottom:14px}
-      .drv-title{font-size:20px;font-weight:900;color:#1e3a5f}
-      .drv-sub{font-size:11px;color:#555;margin-top:3px}
-      table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px}
-      th{background:#1e3a5f;color:white;padding:7px 8px;text-align:right;font-weight:600;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      td{padding:6px 8px;border-bottom:1px solid #e5e7eb}
-      tr:nth-child(even) td{background:#f9fafb;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      .tot td{font-weight:900;background:#fef3c7!important;color:#92400e;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      .section-title{font-size:13px;font-weight:800;color:#1e3a5f;border-right:4px solid #f59e0b;padding-right:8px;margin:12px 0 8px}
-      @media print{.driver-page{padding:12px}@page{margin:1cm;size:A4}}`;
+    // إنشاء overlay داخل نفس الصفحة
+    const old=document.getElementById("__pOverlay");
+    if(old) old.remove();
 
-    // ── حفظ في localStorage وفتح صفحة الطباعة ──
-    const fullHTML=`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"/><style>${printCSS}</style></head><body>${body}</body></html>`;
-    try{ localStorage.setItem("__printJob", fullHTML); }
-    catch(e){ alert("خطأ في حفظ بيانات الطباعة"); return; }
-    window.location.href = "print.html";
+    const ov=document.createElement("div");
+    ov.id="__pOverlay";
+    ov.style.cssText="position:fixed;inset:0;z-index:99999;background:#fff;overflow-y:auto;font-family:'Cairo','Segoe UI',Tahoma,sans-serif;direction:rtl;";
+    ov.innerHTML=`
+      <style>
+        #__pOverlay .dp{padding:14px;max-width:700px;margin:0 auto;}
+        #__pOverlay .dh{border-bottom:3px solid #f59e0b;padding-bottom:8px;margin-bottom:12px;}
+        #__pOverlay .dt{font-size:16px;font-weight:900;color:#1e3a5f;}
+        #__pOverlay .ds{font-size:10px;color:#555;margin-top:2px;}
+        #__pOverlay table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;}
+        #__pOverlay th{background:#1e3a5f;color:#fff;padding:6px 7px;text-align:right;font-weight:700;}
+        #__pOverlay td{padding:5px 7px;border-bottom:1px solid #e5e7eb;}
+        #__pOverlay tr:nth-child(even) td{background:#f9fafb;}
+        #__pOverlay .tt td{font-weight:900;background:#fef3c7;color:#92400e;}
+        #__pOverlay .st{font-size:12px;font-weight:800;color:#1e3a5f;border-right:4px solid #f59e0b;padding-right:7px;margin:10px 0 7px;}
+        #__pToolbar{position:sticky;top:0;background:#1e3a5f;padding:10px 14px;display:flex;gap:8px;align-items:center;z-index:2;}
+        #__pToolbar span{color:#f59e0b;font-weight:900;font-size:14px;flex:1;}
+        #__pToolbar button{border:none;border-radius:10px;padding:9px 16px;font-family:'Cairo',sans-serif;font-weight:900;font-size:13px;cursor:pointer;}
+        .btn-print-ov{background:#f59e0b;color:#0f1923;}
+        .btn-close-ov{background:rgba(255,255,255,0.15);color:#fff;}
+        @media print{
+          #__pToolbar{display:none!important;}
+          #__pOverlay{position:static!important;overflow:visible!important;}
+          body>*:not(#__pOverlay){display:none!important;}
+          @page{margin:1cm;size:A4;}
+        }
+      </style>
+      <div id="__pToolbar">
+        <span>📋 تقرير الآليات — ${wk}</span>
+        <button class="btn-print-ov" onclick="window.print()">🖨️ طباعة</button>
+        <button class="btn-close-ov" onclick="document.getElementById('__pOverlay').remove()">✕ إغلاق</button>
+      </div>
+      <div id="__pBody">${body}</div>`;
+
+    document.body.appendChild(ov);
+
   }).catch(e=>{
     if(btn){btn.textContent="🖨️ طباعة تقرير جميع الآليات";btn.disabled=false;}
     alert("خطأ في تحميل البيانات: "+e.message);
   });
 }
-
 
 </script>
 
