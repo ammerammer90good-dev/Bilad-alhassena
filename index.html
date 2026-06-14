@@ -931,7 +931,6 @@ function adminPrintAll(){
       const reportURL="https://ammerammer90good-dev.github.io/Bilad-alhassena/report.html?id="+reportId+"&db="+encodeURIComponent(dbUrl);
       // فتح في المتصفح الخارجي
       // عرض QR Code للتقرير
-      const qrURL = "https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl="+encodeURIComponent(reportURL)+"&choe=UTF-8";
       const old = document.getElementById("__qrModal");
       if(old) old.remove();
       const modal = document.createElement("div");
@@ -941,15 +940,31 @@ function adminPrintAll(){
         <div style="background:#fff;border-radius:20px;padding:24px;text-align:center;max-width:300px;width:90%;font-family:'Cairo',sans-serif;">
           <div style="font-size:22px;font-weight:900;color:#1e3a5f;margin-bottom:6px;">📋 تقرير جاهز</div>
           <div style="font-size:12px;color:#555;margin-bottom:16px;">امسح الكود بكاميرا الجوال<br/>سيفتح التقرير في Chrome للطباعة</div>
-          <img src="${qrURL}" style="width:200px;height:200px;border:2px solid #e5e7eb;border-radius:12px;"/>
+          <canvas id="__qrCanvas" style="border:2px solid #e5e7eb;border-radius:12px;"></canvas>
           <div style="margin-top:14px;font-size:11px;color:#888;">أو انسخ الرابط:</div>
-          <input readonly value="${reportURL}" onclick="this.select()" style="width:100%;margin-top:6px;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:10px;direction:ltr;text-align:center;box-sizing:border-box;"/>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <input id="__qrLink" readonly value="${reportURL}" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:10px;direction:ltr;text-align:center;box-sizing:border-box;"/>
+            <button onclick="navigator.clipboard?navigator.clipboard.writeText('${reportURL}').then(()=>this.textContent='✅'):document.getElementById('__qrLink').select();document.execCommand('copy');this.textContent='✅'" 
+              style="background:#f59e0b;border:none;border-radius:8px;padding:8px 12px;font-weight:900;cursor:pointer;white-space:nowrap;">نسخ</button>
+          </div>
           <button onclick="document.getElementById('__qrModal').remove()" 
             style="margin-top:14px;width:100%;background:#1e3a5f;color:#fff;border:none;border-radius:12px;padding:12px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
             إغلاق
           </button>
         </div>`;
       document.body.appendChild(modal);
+
+      // توليد QR Code محلياً
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+      script.onload = function(){
+        new QRCode(document.getElementById("__qrCanvas"),{
+          text: reportURL, width:220, height:220,
+          colorDark:"#1e3a5f", colorLight:"#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      };
+      document.head.appendChild(script);
       // حذف بعد 10 دقائق
       setTimeout(()=>{
         fetch(dbUrl+"/temp_reports/"+reportId+".json",{method:"DELETE"});
