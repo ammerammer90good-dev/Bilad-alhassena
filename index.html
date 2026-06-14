@@ -930,11 +930,7 @@ function adminPrintAll(){
       if(btn){btn.textContent="🖨️ طباعة تقرير جميع الآليات";btn.disabled=false;}
       const reportURL="https://ammerammer90good-dev.github.io/Bilad-alhassena/report.html?id="+reportId+"&db="+encodeURIComponent(dbUrl);
       // فتح في المتصفح الخارجي
-      if(typeof gonative!=="undefined"){
-        gonative.open.inAppBrowser({url:reportURL,target:"_system"});
-      } else {
-        window.open(reportURL,"_blank");
-      }
+      window.open(reportURL, "_blank");
       // حذف بعد 10 دقائق
       setTimeout(()=>{
         fetch(dbUrl+"/temp_reports/"+reportId+".json",{method:"DELETE"});
