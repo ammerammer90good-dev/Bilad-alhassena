@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>تقرير الآليات</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Cairo','Segoe UI',Tahoma,sans-serif;direction:rtl;background:#fff;color:#111;}
+    #toolbar{position:sticky;top:0;background:#1e3a5f;padding:11px 14px;display:flex;gap:8px;align-items:center;z-index:99;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+    #toolbar span{color:#f59e0b;font-weight:900;font-size:14px;flex:1;}
+    #toolbar button{border:none;border-radius:10px;padding:10px 18px;font-family:'Cairo',sans-serif;font-weight:900;font-size:14px;cursor:pointer;background:#f59e0b;color:#0f1923;}
+    #loading{text-align:center;padding:80px 20px;}
+    #loading .ico{font-size:48px;margin-bottom:12px;}
+    #loading p{font-size:15px;color:#1e3a5f;font-weight:700;}
+    #content{padding:14px;}
+    .dp{max-width:700px;margin:0 auto 20px;padding-bottom:20px;border-bottom:2px dashed #ddd;}
+    .dp:last-child{border-bottom:none;}
+    .dh{border-bottom:3px solid #f59e0b;padding-bottom:8px;margin-bottom:12px;}
+    .dt{font-size:17px;font-weight:900;color:#1e3a5f;}
+    .ds{font-size:11px;color:#444;margin-top:3px;font-weight:600;}
+    table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;}
+    th{background:#1e3a5f;color:#fff;padding:7px 8px;text-align:right;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    td{padding:7px 8px;border-bottom:1px solid #ccc;color:#111;font-weight:600;}
+    tr:nth-child(even) td{background:#f0f0f0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .tt td{font-weight:900;background:#fef3c7!important;color:#7c4a00;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .st{font-size:13px;font-weight:900;color:#1e3a5f;border-right:4px solid #f59e0b;padding-right:8px;margin:10px 0 7px;}
+    p{color:#1a7a3a;font-weight:800;font-size:12px;margin-top:8px;}
+    #errBox{text-align:center;padding:40px 20px;color:#c00;font-size:15px;font-weight:700;}
+    @media print{
+      #toolbar{display:none!important;}
+      .dp{page-break-inside:avoid;}
+      body{padding:0;}
+      @page{margin:1cm;size:A4;}
+    }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <span id="toolTitle">📋 تقرير الآليات</span>
+  <button onclick="window.print()">🖨️ طباعة / PDF</button>
+</div>
+
+<div id="loading">
+  <div class="ico">⏳</div>
+  <p>جاري تحميل التقرير...</p>
+</div>
+
+<div id="content" style="display:none;"></div>
+<div id="errBox" style="display:none;"></div>
+
+<script>
+  const params  = new URLSearchParams(window.location.search);
+  const reportId = params.get("id");
+  const dbUrl    = params.get("db");
+
+  function showErr(msg){
+    document.getElementById("loading").style.display="none";
+    document.getElementById("errBox").style.display="block";
+    document.getElementById("errBox").innerHTML="❌ "+msg;
+  }
+
+  if(!reportId||!dbUrl){
+    showErr("رابط غير صحيح — لا يوجد معرّف تقرير");
+  } else {
+    // جلب البيانات عبر REST API بدون أي SDK
+    fetch(dbUrl+"/temp_reports/"+reportId+".json")
+      .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+      .then(d=>{
+        if(!d){showErr("التقرير غير موجود أو انتهت صلاحيته (10 دقائق)");return;}
+        document.getElementById("toolTitle").textContent="📋 تقرير الآليات — "+(d.week||"");
+        document.getElementById("content").innerHTML=d.body||"";
+        document.getElementById("loading").style.display="none";
+        document.getElementById("content").style.display="block";
+      })
+      .catch(e=>showErr("فشل التحميل: "+e.message));
+  }
+</script>
+</body>
+</html>
